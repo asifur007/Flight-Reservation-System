@@ -1,6 +1,7 @@
 package com.asif.flightreservation.controllers;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.ModelMap;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -10,12 +11,19 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import com.asif.flightreservation.entities.User;
 import com.asif.flightreservation.repos.UserRepository;
+import com.asif.flightreservation.services.SecurityService;
 
 @Controller
 public class UserController {
 
 	@Autowired
 	private UserRepository userRepository;
+	
+	@Autowired
+	private BCryptPasswordEncoder encoder;
+	
+	@Autowired
+	SecurityService securityService;
 	
 	@RequestMapping("/showReg")
 	public String showRegistrationPage() {
@@ -29,6 +37,7 @@ public class UserController {
 	
 	@RequestMapping(value="/registerUser", method=RequestMethod.POST)
 	public String register(@ModelAttribute("user") User user) {
+		user.setPassword(encoder.encode(user.getPassword()));
 		userRepository.save(user);
 		return "login/login";
 	}
@@ -36,8 +45,8 @@ public class UserController {
 	@RequestMapping(value="/login", method=RequestMethod.POST)
 	public String login(@RequestParam("email") String email,@RequestParam("password") String password
 			, ModelMap modelMap) {
-		User user = userRepository.findByEmail(email);
-		if(user.getPassword().equals(password)) {
+		boolean loginResponse = securityService.login(email, password);
+		if(loginResponse) {
 			return "findFlights";
 		}else {
 			modelMap.addAttribute("msg", "Invalid username or password, Please try again...");
